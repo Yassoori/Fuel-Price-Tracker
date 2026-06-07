@@ -158,6 +158,24 @@ public class MainFrame extends JFrame {
                 FlatClientProperties.TABBED_PANE_TAB_TYPE_CARD);
 
         mapPanel = new MapPanel();
+        // Register click listener: update custom coordinates fields and trigger search
+        mapPanel.setMapClickListener((lat, lon) -> {
+            // Switch to custom coordinates option
+            for (int i = 0; i < locationComboBox.getItemCount(); i++) {
+                Object item = locationComboBox.getItemAt(i);
+                if (item instanceof MainFrame.LocationOption) {
+                    MainFrame.LocationOption opt = (MainFrame.LocationOption) item;
+                    if (opt.isCustom) {
+                        locationComboBox.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            }
+            latField.setText(String.format("%.6f", lat));
+            lonField.setText(String.format("%.6f", lon));
+            // Perform a fresh search using the clicked location
+            performSearch();
+        });
         listPanel = new ListPanel();
 
         tabbedPane.addTab("Map", mapPanel);

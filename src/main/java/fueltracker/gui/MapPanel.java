@@ -9,12 +9,19 @@ import org.jxmapviewer.viewer.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class MapPanel extends JPanel {
+
+    /** Callback fired when the user clicks on the map. */
+    public interface MapClickListener {
+        void onMapClicked(double lat, double lon);
+    }
 
     private static final Color MARKER_DOT = new Color(0x3B82F6);
     private static final Color MARKER_TEXT = new Color(0x1E3A8A);
@@ -23,6 +30,10 @@ public class MapPanel extends JPanel {
     private final JXMapViewer mapViewer;
     private final Set<Waypoint> waypoints;
     private final WaypointPainter<Waypoint> waypointPainter;
+
+    /** Currently clicked location pin (null = no click yet). */
+    private GeoPosition clickedPosition = null;
+    private MapClickListener clickListener = null;
 
     public MapPanel() {
         this.mapViewer = new JXMapViewer();
@@ -48,9 +59,46 @@ public class MapPanel extends JPanel {
         mapViewer.setTileFactory(tileFactory);
 
         PanMouseInputListener panner = new PanMouseInputListener(mapViewer);
-        mapViewer.addMouseListener(panner);
         mapViewer.addMouseMotionListener(panner);
         mapViewer.addMouseWheelListener(new ZoomMouseWheelListenerCenter(mapViewer));
+
+        // Custom mouse listener: handle click-to-search, fall back to panning on drag
+        mapViewer.addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+
+                panner.mousePressed(e); // start panning tracking
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                panner.mouseReleased(e);
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getButton() != MouseEvent.BUTTON1)
+                    return;
+                // Convert pixel → geo
+                Point clickPt = e.getPoint();
+                Rectangle viewport = mapViewer.getViewportBounds();
+                int absX = viewport.x + clickPt.x;
+                int absY = viewport.y + clickPt.y;
+                GeoPosition geo = mapViewer.getTileFactory().pixelToGeo(
+                        new Point2D.Double(absX, absY), mapViewer.getZoom());
+                clickedPosition = geo;
+                mapViewer.repaint();
+                if (clickListener != null) {
+                    clickListener.onMapClicked(geo.getLatitude(), geo.getLongitude());
+                }
+            }
+        });
 
         GeoPosition sydneyCBD = new GeoPosition(-33.8688, 151.2093);
         mapViewer.setAddressLocation(sydneyCBD);
@@ -58,6 +106,11 @@ public class MapPanel extends JPanel {
 
         waypointPainter.setRenderer(new PriceWaypointRenderer());
         mapViewer.setOverlayPainter(waypointPainter);
+    }
+
+    /** Register a callback that fires when the user clicks the map. */
+    public void setMapClickListener(MapClickListener listener) {
+        this.clickListener = listener;
     }
 
     public void updateMap(List<Station> stations, double searchLat, double searchLon, int radiusKm) {
@@ -109,7 +162,7 @@ public class MapPanel extends JPanel {
         }
     }
 
-    private static class PriceWaypointRenderer implements WaypointRenderer<Waypoint> {
+    private class PriceWaypointRenderer implements WaypointRenderer<Waypoint> {
         @Override
         public void paintWaypoint(Graphics2D g, JXMapViewer map, Waypoint wp) {
             if (!(wp instanceof StationWaypoint stationWaypoint)) {
@@ -117,7 +170,7 @@ public class MapPanel extends JPanel {
             }
 
             Station station = stationWaypoint.getStation();
-            Point2D pt = map.convertGeoPositionToPoint(wp.getPosition());
+            Point2D pt = map.getTileFactory().geoToPixel(wp.getPosition(), map.getZoom());
             int x = (int) pt.getX();
             int y = (int) pt.getY();
 
@@ -158,6 +211,33 @@ public class MapPanel extends JPanel {
             g.setColor(Color.WHITE);
             g.setStroke(new BasicStroke(1.5f));
             g.drawOval(x - 4, y - 4, 8, 8);
+
+            // Draw the click-target crosshair if a position has been selected
+            if (clickedPosition != null) {
+                Point2D clickPt = map.getTileFactory().geoToPixel(clickedPosition, map.getZoom());
+                drawClickPin(g, (int) clickPt.getX(), (int) clickPt.getY());
+            }
+        }
+
+        private void drawClickPin(Graphics2D g, int cx, int cy) {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            // Outer pulsing ring
+            g.setColor(new Color(0xF97316)); // orange accent
+            g.setStroke(new BasicStroke(2f));
+            g.drawOval(cx - 10, cy - 10, 20, 20);
+            // Filled inner dot
+            g.setColor(new Color(0xF97316));
+            g.fillOval(cx - 5, cy - 5, 10, 10);
+            g.setColor(Color.WHITE);
+            g.setStroke(new BasicStroke(1.5f));
+            g.drawOval(cx - 5, cy - 5, 10, 10);
+            // Cross-hair lines
+            g.setColor(new Color(0xF97316));
+            g.setStroke(new BasicStroke(1.5f));
+            g.drawLine(cx - 16, cy, cx - 12, cy);
+            g.drawLine(cx + 12, cy, cx + 16, cy);
+            g.drawLine(cx, cy - 16, cx, cy - 12);
+            g.drawLine(cx, cy + 12, cx, cy + 16);
         }
     }
 }
