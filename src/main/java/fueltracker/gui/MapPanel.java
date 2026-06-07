@@ -98,8 +98,8 @@ public class MapPanel extends JPanel {
 
             Station station = stationWaypoint.getStation();
 
-            // Convert geo coordinates to 2D pixel coordinates on screen
-            Point2D pt = map.getTileFactory().geoToPoint(wp.getPosition(), map.getZoom());
+            // Convert geo coordinates to screen pixel coordinates (returns Point2D)
+            Point2D pt = map.convertGeoPositionToPoint(wp.getPosition());
             int x = (int) pt.getX();
             int y = (int) pt.getY();
 
