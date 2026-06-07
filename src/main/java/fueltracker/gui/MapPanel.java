@@ -9,7 +9,7 @@ import org.jxmapviewer.viewer.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.geom.Point2D;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -98,10 +98,10 @@ public class MapPanel extends JPanel {
 
             Station station = stationWaypoint.getStation();
 
-            // Convert geo coordinates to screen pixel coordinates (returns Point2D)
-            Point2D pt = map.convertGeoPositionToPoint(wp.getPosition());
-            int x = (int) pt.getX();
-            int y = (int) pt.getY();
+            // Convert geo coordinates to screen pixel coordinates
+            java.awt.Point pt = map.convertGeoPositionToPoint(wp.getPosition());
+            int x = pt.x;
+            int y = pt.y;
 
             // Format price: divide by 100 if stored in cents
             double price = station.getPrice();
