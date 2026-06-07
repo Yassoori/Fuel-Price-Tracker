@@ -34,8 +34,13 @@ public class FuelTrackerTest {
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         this.stationDAO = new StationDAOImpl();
+        try (Connection conn = dbManager.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("DELETE FROM FUEL_PRICES");
+            stmt.executeUpdate("DELETE FROM STATIONS");
+        }
     }
 
     @Test
@@ -119,6 +124,7 @@ public class FuelTrackerTest {
     @Test
     public void test4_FuelPriceOffsetCalculation() {
         FuelTrackerService service = new FuelTrackerService();
+        service.setForceOffline(true);
 
         // Perform a search in offline mode (by targeting a default coords with no API configuration)
         // Verify fallback loading and fuel offsets
@@ -146,6 +152,7 @@ public class FuelTrackerTest {
     @Test
     public void test5_OfflineSearchFallback() {
         FuelTrackerService service = new FuelTrackerService();
+        service.setForceOffline(true);
 
         // Querying chatswood coordinates (-33.8012, 151.1789)
         List<Station> results = service.searchStations(-33.8012, 151.1789, 5.0, "U91");

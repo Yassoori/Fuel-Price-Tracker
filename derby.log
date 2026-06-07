@@ -1,6 +1,6 @@
 ----------------------------------------------------------------
-Sun Jun 07 20:49:16 NZST 2026:
-Booting Derby version The Apache Software Foundation - Apache Derby - 10.14.2.0 - (1828579): instance a816c00e-019e-a145-a492-00000e0f0b60 
+Sun Jun 07 22:22:44 NZST 2026:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.14.2.0 - (1828579): instance a816c00e-019e-a19b-377a-00000f0ec4b0 
 on database directory /Users/yasser/Documents/My Files/Code/AUT/Year 2 Sem 1/COMP603 PDC/Project_2/FuelTrackerDB with class loader jdk.internal.loader.ClassLoaders$AppClassLoader@7a8c5397 
 Loaded from file:/Users/yasser/.m2/repository/org/apache/derby/derby/10.14.2.0/derby-10.14.2.0.jar
 java.vendor=Eclipse Adoptium
@@ -11,3 +11,9 @@ os.arch=aarch64
 os.version=26.5.1
 derby.system.home=null
 Database Class Loader started - derby.database.classpath=''
+----------------------------------------------------------------
+Sun Jun 07 22:22:44 NZST 2026: Shutting down Derby engine
+----------------------------------------------------------------
+Sun Jun 07 22:22:44 NZST 2026:
+Shutting down instance a816c00e-019e-a19b-377a-00000f0ec4b0 on database directory /Users/yasser/Documents/My Files/Code/AUT/Year 2 Sem 1/COMP603 PDC/Project_2/FuelTrackerDB with class loader jdk.internal.loader.ClassLoaders$AppClassLoader@7a8c5397 
+----------------------------------------------------------------

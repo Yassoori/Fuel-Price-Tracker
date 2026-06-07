@@ -21,12 +21,17 @@ public class FuelTrackerService {
     private final StationDAO stationDAO;
     private final Gson gson;
     private boolean lastSearchWasOffline;
+    private boolean forceOffline = false;
 
     public FuelTrackerService() {
         this.apiClient = new NSWApiClient();
         this.stationDAO = new StationDAOImpl();
         this.gson = new Gson();
         this.lastSearchWasOffline = false;
+    }
+
+    public void setForceOffline(boolean forceOffline) {
+        this.forceOffline = forceOffline;
     }
 
     /**
@@ -37,7 +42,7 @@ public class FuelTrackerService {
         List<Station> stations = new ArrayList<>();
         lastSearchWasOffline = false;
 
-        if (apiClient.isConfigured()) {
+        if (apiClient.isConfigured() && !forceOffline) {
             try {
                 System.out.println("Querying NSW Fuel Check API (Online Mode) for nearby stations...");
                 stations = apiClient.fetchNearbyStations(lat, lon, radiusKm, fuelType);

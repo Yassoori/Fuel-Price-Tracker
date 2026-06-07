@@ -1,5 +1,6 @@
 package fueltracker.gui;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import fueltracker.model.Station;
@@ -12,6 +13,10 @@ import java.awt.event.ActionEvent;
 import java.util.List;
 
 public class MainFrame extends JFrame {
+    private static final Color MUTED_FG = new Color(0x64748B);
+    private static final Color CARD_BORDER = new Color(0xE2E8F0);
+    private static final Color PRIMARY = new Color(0x1E3A8A);
+
     private final FuelTrackerService trackerService;
 
     // Search Controls
@@ -26,83 +31,158 @@ public class MainFrame extends JFrame {
     private MapPanel mapPanel;
     private ListPanel listPanel;
     private JLabel statusLabel;
+    private JLabel modeBadge;
 
     public MainFrame() {
         this.trackerService = new FuelTrackerService();
 
         setTitle("Sydney Fuel Price & Map Dashboard");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1000, 700);
+        setSize(1200, 780);
+        setMinimumSize(new Dimension(960, 640));
         setLocationRelativeTo(null);
 
         initComponents();
-        performSearch(); // Perform initial search on startup
+        performSearch();
     }
 
     private void initComponents() {
-        // Layout structure: Border Layout
-        JPanel mainContent = new JPanel(new BorderLayout());
-        mainContent.setBorder(new EmptyBorder(12, 12, 12, 12));
+        JPanel mainContent = new JPanel(new BorderLayout(0, 16));
+        mainContent.setBorder(new EmptyBorder(20, 24, 16, 24));
+        mainContent.setBackground(UIManager.getColor("Panel.background"));
 
-        // 1. Top Panel: Search Controls
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        topPanel.setBorder(BorderFactory.createTitledBorder("Search Settings"));
+        JPanel topSection = new JPanel();
+        topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
+        topSection.setOpaque(false);
+        topSection.add(buildHeader());
+        topSection.add(Box.createVerticalStrut(16));
+        topSection.add(buildSearchCard());
+        mainContent.add(topSection, BorderLayout.NORTH);
 
-        // Location selection
-        topPanel.add(new JLabel("Location:"));
+        JPanel body = new JPanel(new BorderLayout(0, 12));
+        body.setOpaque(false);
+        body.add(buildTabbedContent(), BorderLayout.CENTER);
+        body.add(buildStatusBar(), BorderLayout.SOUTH);
+        mainContent.add(body, BorderLayout.CENTER);
+
+        setContentPane(mainContent);
+        handleLocationChange(null);
+    }
+
+    private JPanel buildHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+
+        JPanel titles = new JPanel();
+        titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
+        titles.setOpaque(false);
+
+        JLabel title = new JLabel("Sydney Fuel Tracker");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 26f));
+        title.setForeground(PRIMARY);
+        titles.add(title);
+
+        JLabel subtitle = new JLabel("Compare live fuel prices from stations across Sydney");
+        subtitle.setFont(subtitle.getFont().deriveFont(Font.PLAIN, 14f));
+        subtitle.setForeground(MUTED_FG);
+        subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
+        titles.add(subtitle);
+
+        header.add(titles, BorderLayout.WEST);
+        return header;
+    }
+
+    private JPanel buildSearchCard() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(CARD_BORDER, 1, true),
+                new EmptyBorder(16, 20, 16, 20)
+        ));
+
+        JPanel form = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        form.setOpaque(false);
+
         locationComboBox = new JComboBox<>(getLocationOptions());
+        locationComboBox.setPreferredSize(new Dimension(180, 36));
         locationComboBox.addActionListener(this::handleLocationChange);
-        topPanel.add(locationComboBox);
+        form.add(createFieldGroup("Location", locationComboBox));
 
-        topPanel.add(new JLabel("Lat:"));
-        latField = new JTextField("-33.8688", 8);
-        topPanel.add(latField);
-
-        topPanel.add(new JLabel("Lon:"));
-        lonField = new JTextField("151.2093", 8);
-        topPanel.add(lonField);
-
-        // Fuel Type selector (Default U91)
-        topPanel.add(new JLabel("Fuel Type:"));
         fuelComboBox = new JComboBox<>(getFuelOptions());
-        topPanel.add(fuelComboBox);
+        fuelComboBox.setPreferredSize(new Dimension(200, 36));
+        form.add(createFieldGroup("Fuel type", fuelComboBox));
 
-        // Radius Selector (Default 20 km)
-        topPanel.add(new JLabel("Radius:"));
         radiusComboBox = new JComboBox<>(new Integer[]{5, 10, 20, 50});
         radiusComboBox.setSelectedItem(20);
-        topPanel.add(radiusComboBox);
+        radiusComboBox.setPreferredSize(new Dimension(100, 36));
+        form.add(createFieldGroup("Radius (km)", radiusComboBox));
 
-        // Search Button
-        searchButton = new JButton("Search");
+        latField = new JTextField("-33.8688", 10);
+        latField.setPreferredSize(new Dimension(110, 36));
+        form.add(createFieldGroup("Latitude", latField));
+
+        lonField = new JTextField("151.2093", 10);
+        lonField.setPreferredSize(new Dimension(110, 36));
+        form.add(createFieldGroup("Longitude", lonField));
+
+        searchButton = new JButton("Search stations");
+        searchButton.setPreferredSize(new Dimension(140, 36));
+        searchButton.putClientProperty(FlatClientProperties.BUTTON_TYPE,
+                FlatClientProperties.BUTTON_TYPE_ROUND_RECT);
         searchButton.addActionListener(e -> performSearch());
-        topPanel.add(searchButton);
+        form.add(createFieldGroup(" ", searchButton));
 
-        mainContent.add(topPanel, BorderLayout.NORTH);
+        card.add(form, BorderLayout.CENTER);
+        return card;
+    }
 
-        // 2. Center Panel: Tabbed Interface (Map and List)
+    private JPanel createFieldGroup(String label, JComponent field) {
+        JPanel group = new JPanel();
+        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+        group.setOpaque(false);
+
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(lbl.getFont().deriveFont(Font.PLAIN, 12f));
+        lbl.setForeground(MUTED_FG);
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        group.add(lbl);
+        group.add(Box.createVerticalStrut(6));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        group.add(field);
+        return group;
+    }
+
+    private JTabbedPane buildTabbedContent() {
         JTabbedPane tabbedPane = new JTabbedPane();
-        
+        tabbedPane.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_TYPE,
+                FlatClientProperties.TABBED_PANE_TAB_TYPE_CARD);
+
         mapPanel = new MapPanel();
         listPanel = new ListPanel();
 
-        tabbedPane.addTab("Map View", mapPanel);
-        tabbedPane.addTab("List View", listPanel);
+        tabbedPane.addTab("Map", mapPanel);
+        tabbedPane.addTab("Station list", listPanel);
+        return tabbedPane;
+    }
 
-        mainContent.add(tabbedPane, BorderLayout.CENTER);
+    private JPanel buildStatusBar() {
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        bar.setBorder(new EmptyBorder(4, 2, 0, 2));
 
-        // 3. Bottom Panel: Status Bar
-        JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.setBorder(new EmptyBorder(6, 4, 0, 4));
-        statusLabel = new JLabel("Application Ready.");
-        bottomPanel.add(statusLabel, BorderLayout.WEST);
+        statusLabel = new JLabel("Ready");
+        statusLabel.setFont(statusLabel.getFont().deriveFont(Font.PLAIN, 13f));
+        statusLabel.setForeground(MUTED_FG);
+        bar.add(statusLabel, BorderLayout.WEST);
 
-        mainContent.add(bottomPanel, BorderLayout.SOUTH);
+        modeBadge = new JLabel(" ");
+        modeBadge.setFont(modeBadge.getFont().deriveFont(Font.BOLD, 12f));
+        modeBadge.setBorder(new EmptyBorder(4, 10, 4, 10));
+        modeBadge.setOpaque(true);
+        modeBadge.setVisible(false);
+        bar.add(modeBadge, BorderLayout.EAST);
 
-        setContentPane(mainContent);
-
-        // Initial setup for location fields
-        handleLocationChange(null);
+        return bar;
     }
 
     private void handleLocationChange(ActionEvent e) {
@@ -129,10 +209,10 @@ public class MainFrame extends JFrame {
 
             if (fuel == null) return;
 
-            statusLabel.setText("Fetching prices...");
+            statusLabel.setText("Fetching prices…");
+            updateModeBadge(null);
             searchButton.setEnabled(false);
 
-            // Execute service search in a background thread to prevent UI freezing
             SwingWorker<List<Station>, Void> worker = new SwingWorker<>() {
                 @Override
                 protected List<Station> doInBackground() {
@@ -143,14 +223,18 @@ public class MainFrame extends JFrame {
                 protected void done() {
                     try {
                         List<Station> stations = get();
-                        mapPanel.updateMap(stations, lat, lon);
+                        mapPanel.updateMap(stations, lat, lon, radius);
                         listPanel.updateList(stations);
 
-                        String mode = trackerService.isLastSearchWasOffline() ? "Offline Mode (Fallback Loaded)" : "Online Mode";
-                        statusLabel.setText(String.format("Found %d stations within %d km of search point. (Mode: %s)", 
-                                stations.size(), radius, mode));
+                        boolean offline = trackerService.isLastSearchWasOffline();
+                        statusLabel.setText(String.format(
+                                "Found %d station%s within %d km",
+                                stations.size(), stations.size() == 1 ? "" : "s", radius
+                        ));
+                        updateModeBadge(offline);
                     } catch (Exception ex) {
                         statusLabel.setText("Search failed: " + ex.getMessage());
+                        updateModeBadge(null);
                     } finally {
                         searchButton.setEnabled(true);
                     }
@@ -159,8 +243,27 @@ public class MainFrame extends JFrame {
             worker.execute();
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Please enter valid numeric latitude and longitude coordinates.", 
+            JOptionPane.showMessageDialog(this,
+                    "Please enter valid numeric latitude and longitude coordinates.",
                     "Invalid Coordinates", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateModeBadge(Boolean offline) {
+        if (offline == null) {
+            modeBadge.setText(" ");
+            modeBadge.setVisible(false);
+            return;
+        }
+        modeBadge.setVisible(true);
+        if (offline) {
+            modeBadge.setText("Offline");
+            modeBadge.setForeground(new Color(0x92400E));
+            modeBadge.setBackground(new Color(0xFEF3C7));
+        } else {
+            modeBadge.setText("Live");
+            modeBadge.setForeground(new Color(0x166534));
+            modeBadge.setBackground(new Color(0xDCFCE7));
         }
     }
 
@@ -183,10 +286,6 @@ public class MainFrame extends JFrame {
                 new FuelOption("Diesel (DL)", "DL")
         };
     }
-
-    // ==========================================
-    // INNER HELPER CLASSES
-    // ==========================================
 
     private static class LocationOption {
         final String name;
@@ -222,9 +321,7 @@ public class MainFrame extends JFrame {
         }
     }
 
-    // Main executable launcher for GUI testing
     public static void main(String[] args) {
-        // Setup FlatLaf look and feel
         FlatLightLaf.setup();
         FlatLaf.registerCustomDefaultsSource("themes");
 

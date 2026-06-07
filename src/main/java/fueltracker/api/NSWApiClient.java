@@ -108,9 +108,9 @@ public class NSWApiClient {
         // Prepare request body
         Map<String, Object> bodyMap = new HashMap<>();
         bodyMap.put("fueltype", fuelType);
-        bodyMap.put("latitude", lat);
-        bodyMap.put("longitude", lon);
-        bodyMap.put("radius", radiusKm);
+        bodyMap.put("latitude", String.valueOf(lat));
+        bodyMap.put("longitude", String.valueOf(lon));
+        bodyMap.put("radius", String.valueOf(radiusKm));
         String requestBody = gson.toJson(bodyMap);
 
         HttpRequest request = HttpRequest.newBuilder()
