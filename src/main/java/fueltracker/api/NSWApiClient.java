@@ -131,23 +131,75 @@ public class NSWApiClient {
             throw new IOException("API Error: HTTP " + response.statusCode() + " - " + response.body());
         }
 
+        try (java.io.FileWriter writer = new java.io.FileWriter("api_response_debug.json")) {
+            writer.write(response.body());
+        } catch (Exception e) {
+            System.err.println("Failed to write api_response_debug.json: " + e.getMessage());
+        }
+
         return parseApiResponse(response.body());
     }
 
     private List<Station> parseApiResponse(String responseBody) {
         List<Station> list = new ArrayList<>();
         JsonObject root = gson.fromJson(responseBody, JsonObject.class);
+
+        // Map station code to price from the 'prices' array
+        Map<String, Double> priceMap = new HashMap<>();
+        if (root.has("prices")) {
+            JsonArray pricesArr = root.getAsJsonArray("prices");
+            for (JsonElement elem : pricesArr) {
+                JsonObject pJson = elem.getAsJsonObject();
+                String sCode = "";
+                if (pJson.has("stationcode")) {
+                    sCode = String.valueOf(pJson.get("stationcode").getAsLong());
+                } else if (pJson.has("code")) {
+                    sCode = String.valueOf(pJson.get("code").getAsLong());
+                }
+                
+                double price = pJson.has("price") ? pJson.get("price").getAsDouble() : 0.0;
+                if (!sCode.isEmpty()) {
+                    priceMap.put(sCode, price);
+                }
+            }
+        }
+
         if (root.has("stations")) {
             JsonArray stationsArr = root.getAsJsonArray("stations");
             for (JsonElement elem : stationsArr) {
                 JsonObject sJson = elem.getAsJsonObject();
-                String code = sJson.has("stationcode") ? sJson.get("stationcode").getAsString() : UUID.randomUUID().toString();
+                String code = "";
+                if (sJson.has("code")) {
+                    code = String.valueOf(sJson.get("code").getAsLong());
+                } else if (sJson.has("stationcode")) {
+                    code = String.valueOf(sJson.get("stationcode").getAsLong());
+                }
+                
+                if (code.isEmpty()) {
+                    continue;
+                }
+
                 String name = sJson.has("name") ? sJson.get("name").getAsString() : "Unknown Station";
                 String address = sJson.has("address") ? sJson.get("address").getAsString() : "No Address Provided";
                 String brand = sJson.has("brand") ? sJson.get("brand").getAsString() : "Independent";
-                double latitude = sJson.has("latitude") ? sJson.get("latitude").getAsDouble() : 0.0;
-                double longitude = sJson.has("longitude") ? sJson.get("longitude").getAsDouble() : 0.0;
-                double price = sJson.has("price") ? sJson.get("price").getAsDouble() : 0.0;
+                
+                double latitude = 0.0;
+                double longitude = 0.0;
+                if (sJson.has("location") && sJson.get("location").isJsonObject()) {
+                    JsonObject loc = sJson.getAsJsonObject("location");
+                    latitude = loc.has("latitude") ? loc.get("latitude").getAsDouble() : 0.0;
+                    longitude = loc.has("longitude") ? loc.get("longitude").getAsDouble() : 0.0;
+                } else {
+                    latitude = sJson.has("latitude") ? sJson.get("latitude").getAsDouble() : 
+                                      (sJson.has("lat") ? sJson.get("lat").getAsDouble() : 0.0);
+                    longitude = sJson.has("longitude") ? sJson.get("longitude").getAsDouble() : 
+                                       (sJson.has("long") ? sJson.get("long").getAsDouble() : 0.0);
+                }
+
+                double price = priceMap.getOrDefault(code, 0.0);
+                if (price == 0.0 && sJson.has("price")) {
+                    price = sJson.get("price").getAsDouble();
+                }
 
                 // Create Station domain model
                 Station station = new Station(code, name, address, brand, latitude, longitude);

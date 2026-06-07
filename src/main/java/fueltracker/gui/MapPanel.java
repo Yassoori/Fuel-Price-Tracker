@@ -18,7 +18,7 @@ public class MapPanel extends JPanel {
 
     private static final Color MARKER_DOT = new Color(0x3B82F6);
     private static final Color MARKER_TEXT = new Color(0x1E3A8A);
-    private static final int DEFAULT_ZOOM = 13; // Much closer initial zoom
+    private static final int DEFAULT_ZOOM = 6; // Much closer initial zoom
 
     private final JXMapViewer mapViewer;
     private final Set<Waypoint> waypoints;
@@ -76,18 +76,23 @@ public class MapPanel extends JPanel {
 
     private static int zoomForRadius(int radiusKm) {
         return switch (radiusKm) {
-            case 5 -> 14;
-            case 10 -> 13;
-            case 50 -> 10;
-            default -> 12; // 20km radius
+            case 5 -> 4;
+            case 10 -> 5;
+            case 50 -> 8;
+            default -> 6; // 20km radius
         };
     }
 
-    /** Minimal light basemap tiles for a cleaner, less cluttered map. */
     private static class LightMapTileFactoryInfo extends TileFactoryInfo {
         LightMapTileFactoryInfo() {
             super("Carto Light", 1, 20, 19, 256, true, true,
                     "https://a.basemaps.cartocdn.com/light_all", "x", "y", "z");
+        }
+
+        @Override
+        public String getTileUrl(int x, int y, int zoom) {
+            int z = this.getTotalMapZoom() - zoom;
+            return "https://a.basemaps.cartocdn.com/light_all/" + z + "/" + x + "/" + y + ".png";
         }
     }
 
