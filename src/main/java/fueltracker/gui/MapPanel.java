@@ -117,7 +117,7 @@ public class MapPanel extends JPanel {
             }
 
             Station station = stationWaypoint.getStation();
-            Point2D pt = map.convertGeoPositionToPoint(wp.getPosition());
+            Point2D pt = map.getTileFactory().geoToPixel(wp.getPosition(), map.getZoom());
             int x = (int) pt.getX();
             int y = (int) pt.getY();
 

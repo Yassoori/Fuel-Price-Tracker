@@ -1,6 +1,6 @@
 ----------------------------------------------------------------
-Sun Jun 07 22:40:37 NZST 2026:
-Booting Derby version The Apache Software Foundation - Apache Derby - 10.14.2.0 - (1828579): instance a816c00e-019e-a1ab-9449-00000e0f32b0 
+Sun Jun 07 22:49:31 NZST 2026:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.14.2.0 - (1828579): instance a816c00e-019e-a1b3-bd95-00000e0e8240 
 on database directory /Users/yasser/Documents/My Files/Code/AUT/Year 2 Sem 1/COMP603 PDC/Project_2/FuelTrackerDB with class loader jdk.internal.loader.ClassLoaders$AppClassLoader@7a8c5397 
 Loaded from file:/Users/yasser/.m2/repository/org/apache/derby/derby/10.14.2.0/derby-10.14.2.0.jar
 java.vendor=Eclipse Adoptium
