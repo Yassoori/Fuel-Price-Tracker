@@ -1,0 +1,16 @@
+# Maven build output
+target/
+
+# API credentials - NEVER commit secrets
+api_config.properties
+
+# macOS system files
+.DS_Store
+
+# NetBeans project files
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
